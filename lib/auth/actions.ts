@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 export async function signUp(email: string, username: string, nickname: string, password: string) {
   const supabase = await createClient();
 
-  const { data, error } = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -19,20 +19,6 @@ export async function signUp(email: string, username: string, nickname: string, 
 
   if (error) {
     return { error: error.message };
-  }
-
-  if (data.user) {
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: data.user.id,
-        username,
-        nickname,
-      });
-
-    if (profileError) {
-      return { error: profileError.message };
-    }
   }
 
   redirect('/login');
