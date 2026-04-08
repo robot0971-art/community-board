@@ -3,9 +3,10 @@ import { getPost, updatePost, deletePost } from '@/lib/posts/actions';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const result = await getPost(Number(params.id));
+  const { id } = await context.params;
+  const result = await getPost(Number(id));
 
   if (result.error) {
     return NextResponse.json({ error: result.error }, { status: 404 });
@@ -16,13 +17,14 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const body = await request.json();
     const { title, content } = body;
 
-    const result = await updatePost(Number(params.id), title, content);
+    const result = await updatePost(Number(id), title, content);
 
     if (result.error) {
       return NextResponse.json({ error: result.error }, { status: 400 });
@@ -39,9 +41,10 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const result = await deletePost(Number(params.id));
+  const { id } = await context.params;
+  const result = await deletePost(Number(id));
 
   if (result.error) {
     return NextResponse.json({ error: result.error }, { status: 400 });
