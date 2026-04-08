@@ -9,6 +9,8 @@ import { getUser } from '@/lib/auth/actions';
 
 interface Comment {
   id: number;
+  post_id: number;
+  user_id: string;
   content: string;
   is_deleted: boolean;
   created_at: string;
