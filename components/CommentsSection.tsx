@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import { getComments, createComment, updateComment, deleteComment } from '@/lib/comments/actions';
-import { getUser } from '@/lib/auth/actions';
 
 interface Comment {
   id: number;
@@ -30,17 +28,31 @@ export default function CommentsSection({ postId }: { postId: number }) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editContent, setEditContent] = useState('');
 
+  async function loadComments() {
+    const response = await fetch(`/api/comments?postId=${postId}`, {
+      cache: 'no-store',
+    });
+    const result = await response.json();
+
+    if (response.ok && result.comments) {
+      setComments(result.comments);
+    }
+  }
+
   useEffect(() => {
     async function fetchData() {
-      const [commentsResult, userResult] = await Promise.all([
-        getComments(postId),
-        getUser(),
+      const [commentsResponse, userResponse] = await Promise.all([
+        fetch(`/api/comments?postId=${postId}`, { cache: 'no-store' }),
+        fetch('/api/auth/me', { cache: 'no-store' }),
       ]);
 
-      if (commentsResult.comments) {
+      const commentsResult = await commentsResponse.json();
+      const userResult = await userResponse.json();
+
+      if (commentsResponse.ok && commentsResult.comments) {
         setComments(commentsResult.comments);
       }
-      setUser(userResult);
+      setUser(userResult.user);
       setLoading(false);
     }
 
@@ -51,45 +63,63 @@ export default function CommentsSection({ postId }: { postId: number }) {
     e.preventDefault();
     if (!newComment.trim()) return;
 
-    const result = await createComment(postId, newComment);
-    if (result.success) {
+    const response = await fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postId, content: newComment }),
+    });
+    const result = await response.json();
+
+    if (response.ok && result.success) {
       setNewComment('');
-      const { comments: updatedComments } = await getComments(postId);
-      if (updatedComments) setComments(updatedComments);
+      await loadComments();
     }
   };
 
   const handleAddReply = async (parentId: number) => {
     if (!replyContent.trim()) return;
 
-    const result = await createComment(postId, replyContent, parentId);
-    if (result.success) {
+    const response = await fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ postId, content: replyContent, parentId }),
+    });
+    const result = await response.json();
+
+    if (response.ok && result.success) {
       setReplyContent('');
       setReplyingTo(null);
-      const { comments: updatedComments } = await getComments(postId);
-      if (updatedComments) setComments(updatedComments);
+      await loadComments();
     }
   };
 
   const handleUpdateComment = async (id: number) => {
     if (!editContent.trim()) return;
 
-    const result = await updateComment(id, editContent);
-    if (result.success) {
+    const response = await fetch(`/api/comments/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: editContent }),
+    });
+    const result = await response.json();
+
+    if (response.ok && result.success) {
       setEditingId(null);
       setEditContent('');
-      const { comments: updatedComments } = await getComments(postId);
-      if (updatedComments) setComments(updatedComments);
+      await loadComments();
     }
   };
 
   const handleDeleteComment = async (id: number) => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
 
-    const result = await deleteComment(id);
-    if (result.success) {
-      const { comments: updatedComments } = await getComments(postId);
-      if (updatedComments) setComments(updatedComments);
+    const response = await fetch(`/api/comments/${id}`, {
+      method: 'DELETE',
+    });
+    const result = await response.json();
+
+    if (response.ok && result.success) {
+      await loadComments();
     }
   };
 

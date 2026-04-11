@@ -150,7 +150,7 @@ export async function updatePost(id: number, title: string, content: string) {
 
   revalidatePath('/posts');
   revalidatePath(`/posts/${id}`);
-  redirect(`/posts/${id}`);
+  return { success: true };
 }
 
 export async function deletePost(id: number) {
