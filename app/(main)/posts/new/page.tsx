@@ -38,6 +38,12 @@ export default function NewPostPage() {
         setLoading(false);
         return;
       }
+
+      if (result?.postId) {
+        router.push(`/posts/${result.postId}`);
+      } else {
+        router.push('/posts');
+      }
     } catch (err) {
       setError('게시글 작성에 실패했습니다');
       setLoading(false);

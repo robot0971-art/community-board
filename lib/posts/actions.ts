@@ -97,7 +97,7 @@ export async function createPost(title: string, content: string, images: string[
     }
   }
 
-  redirect(`/posts/${post?.id}`);
+  return { postId: post?.id };
 }
 
 export async function updatePost(id: number, title: string, content: string) {
