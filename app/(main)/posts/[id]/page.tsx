@@ -8,9 +8,10 @@ import CommentsSection from '@/components/CommentsSection';
 export default async function PostDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const { post, error } = await getPost(Number(params.id));
+  const { id } = await params;
+  const { post, error } = await getPost(Number(id));
 
   if (error || !post) {
     notFound();
