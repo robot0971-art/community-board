@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import { createPost } from '@/lib/posts/actions';
 
 export default function NewPostPage() {
   const router = useRouter();
@@ -31,10 +30,18 @@ export default function NewPostPage() {
     setLoading(true);
 
     try {
-      const result = await createPost(title, content);
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title, content, images: [] }),
+      });
 
-      if (result?.error) {
-        setError(result.error);
+      const result = await response.json();
+
+      if (!response.ok || result?.error) {
+        setError(result?.error || '게시글 작성에 실패했습니다');
         setLoading(false);
         return;
       }

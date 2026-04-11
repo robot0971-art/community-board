@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import type { Database } from '@/lib/supabase/types';
 
@@ -97,6 +98,7 @@ export async function createPost(title: string, content: string, images: string[
     }
   }
 
+  revalidatePath('/posts');
   return { postId: post?.id };
 }
 
@@ -122,6 +124,8 @@ export async function updatePost(id: number, title: string, content: string) {
     return { error: error.message };
   }
 
+  revalidatePath('/posts');
+  revalidatePath(`/posts/${id}`);
   redirect(`/posts/${id}`);
 }
 
@@ -143,5 +147,6 @@ export async function deletePost(id: number) {
     return { error: error.message };
   }
 
+  revalidatePath('/posts');
   redirect('/');
 }

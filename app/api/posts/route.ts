@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, postId: result.postId });
   } catch (error) {
     return NextResponse.json(
       { error: '게시글 작성에 실패했습니다' },
