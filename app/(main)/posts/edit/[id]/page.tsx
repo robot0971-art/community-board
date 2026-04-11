@@ -1,16 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 
-export default function EditPostPage({
-  params,
-}: {
-  params: { id: string };
-}) {
+export default function EditPostPage() {
+  const params = useParams<{ id: string }>();
+  const postId = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -19,9 +17,15 @@ export default function EditPostPage({
   const [error, setError] = useState('');
 
   useEffect(() => {
+    if (!postId) {
+      setError('게시글 정보를 찾을 수 없습니다');
+      setLoading(false);
+      return;
+    }
+
     async function fetchPost() {
       try {
-        const response = await fetch(`/api/posts/${params.id}`);
+        const response = await fetch(`/api/posts/${postId}`);
         const data = await response.json();
 
         if (!response.ok) {
@@ -39,7 +43,7 @@ export default function EditPostPage({
     }
 
     fetchPost();
-  }, [params.id]);
+  }, [postId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +62,12 @@ export default function EditPostPage({
     setSaving(true);
 
     try {
-      const response = await fetch(`/api/posts/${params.id}`, {
+      if (!postId) {
+        setError('게시글 정보를 찾을 수 없습니다');
+        return;
+      }
+
+      const response = await fetch(`/api/posts/${postId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, content }),
@@ -70,7 +79,7 @@ export default function EditPostPage({
         return;
       }
 
-      router.push(`/posts/${params.id}`);
+      router.push(`/posts/${postId}`);
     } catch (err) {
       setError('게시글 수정에 실패했습니다');
     } finally {

@@ -4,16 +4,18 @@ import { createClient } from '@/lib/supabase/server';
 import type { Database } from '@/lib/supabase/types';
 
 type Comment = Database['public']['Tables']['comments']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type CommentWithRelations = Comment & {
+  profiles: Pick<Profile, 'nickname'> | null;
+  replies: CommentWithRelations[];
+};
 
 export async function getComments(postId: number) {
   const supabase = await createClient();
 
   const { data: comments, error } = await supabase
     .from('comments')
-    .select(`
-      *,
-      profiles:user_id (nickname)
-    `)
+    .select('*')
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
 
@@ -21,16 +23,40 @@ export async function getComments(postId: number) {
     return { error: error.message, comments: [] };
   }
 
-  // Organize comments into tree structure
-  const commentMap = new Map();
-  const rootComments: any[] = [];
+  const userIds = [...new Set((comments ?? []).map((comment) => comment.user_id))];
+  const { data: profiles, error: profilesError } = userIds.length === 0
+    ? { data: [], error: null }
+    : await supabase
+        .from('profiles')
+        .select('id, nickname')
+        .in('id', userIds);
 
-  comments?.forEach((comment: any) => {
-    commentMap.set(comment.id, { ...comment, replies: [] });
+  if (profilesError) {
+    return { error: profilesError.message, comments: [] };
+  }
+
+  const profileMap = new Map(
+    (profiles ?? []).map((profile) => [profile.id, { nickname: profile.nickname }])
+  );
+
+  // Organize comments into tree structure
+  const commentMap = new Map<number, CommentWithRelations>();
+  const rootComments: CommentWithRelations[] = [];
+
+  comments?.forEach((comment) => {
+    commentMap.set(comment.id, {
+      ...comment,
+      profiles: profileMap.get(comment.user_id) ?? null,
+      replies: [],
+    });
   });
 
-  comments?.forEach((comment: any) => {
+  comments?.forEach((comment) => {
     const node = commentMap.get(comment.id);
+    if (!node) {
+      return;
+    }
+
     if (comment.parent_id) {
       const parent = commentMap.get(comment.parent_id);
       if (parent) {
