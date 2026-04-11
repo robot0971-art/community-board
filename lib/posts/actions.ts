@@ -7,6 +7,11 @@ import type { Database } from '@/lib/supabase/types';
 
 type Post = Database['public']['Tables']['posts']['Row'];
 type PostImage = Database['public']['Tables']['post_images']['Row'];
+type Profile = Database['public']['Tables']['profiles']['Row'];
+type PostDetail = Post & {
+  profiles: Pick<Profile, 'nickname' | 'username'> | null;
+  post_images: PostImage[];
+};
 
 export async function getPosts(page: number = 1, limit: number = 10) {
   const supabase = await createClient();
@@ -34,16 +39,29 @@ export async function getPost(id: number) {
 
   const { data: post, error } = await supabase
     .from('posts')
-    .select(`
-      *,
-      profiles:user_id (nickname, username),
-      post_images(*)
-    `)
+    .select('*')
     .eq('id', id)
     .single();
 
   if (error) {
     return { error: error.message, post: null };
+  }
+
+  const [{ data: profile }, { data: postImages, error: imagesError }] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('nickname, username')
+      .eq('id', post.user_id)
+      .maybeSingle(),
+    supabase
+      .from('post_images')
+      .select('*')
+      .eq('post_id', id)
+      .order('order_index', { ascending: true }),
+  ]);
+
+  if (imagesError) {
+    return { error: imagesError.message, post: null };
   }
 
   // Increment view count
@@ -52,7 +70,13 @@ export async function getPost(id: number) {
     .update({ view_count: post.view_count + 1 })
     .eq('id', id);
 
-  return { post };
+  const postDetail: PostDetail = {
+    ...post,
+    profiles: profile,
+    post_images: postImages ?? [],
+  };
+
+  return { post: postDetail };
 }
 
 export async function createPost(title: string, content: string, images: string[] = []) {
