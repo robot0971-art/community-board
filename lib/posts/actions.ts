@@ -57,7 +57,9 @@ export async function getPost(id: number) {
 export async function createPost(title: string, content: string, images: string[] = []) {
   const supabase = await createClient();
   
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  console.log('Auth check:', { user: user?.id, authError });
+  
   if (!user) {
     return { error: '로그인이 필요합니다' };
   }
@@ -71,6 +73,8 @@ export async function createPost(title: string, content: string, images: string[
     })
     .select()
     .single();
+
+  console.log('Insert result:', { post, error });
 
   if (error) {
     return { error: error.message };
